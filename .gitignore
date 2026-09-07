@@ -2,18 +2,22 @@
 *.exe
 *.o
 *.obj
-dpi_engine
+*.out
 
-# Generated packet captures
+# Generated packet/output files
 output.pcap
-blocked_output.pcap
+*.pcapng
 
 # Generated reports
 traffic_report.json
 
 # IDE
 .vscode/
+.idea/
 
 # OS
-Thumbs.db
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log
