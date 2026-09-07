@@ -1,0 +1,19 @@
+# Build files
+*.exe
+*.o
+*.obj
+dpi_engine
+
+# Generated packet captures
+output.pcap
+blocked_output.pcap
+
+# Generated reports
+traffic_report.json
+
+# IDE
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
