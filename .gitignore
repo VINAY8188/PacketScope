@@ -3,6 +3,7 @@
 *.o
 *.obj
 *.out
+dpi_engine
 
 # Generated packet/output files
 output.pcap
