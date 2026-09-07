@@ -4,6 +4,7 @@
 *.obj
 *.out
 dpi_engine
+blocked_output.pcap
 
 # Generated packet/output files
 output.pcap
