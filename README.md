@@ -1,389 +1,487 @@
-# PacketScope
+# 🚀 PacketScope
 
-### Multithreaded Deep Packet Inspection & Network Traffic Analysis Engine
-
-PacketScope is a **C++17-based Deep Packet Inspection (DPI) and network traffic analysis engine** designed to process PCAP files, inspect network packets, identify applications and domains, apply traffic rules, and generate detailed analytics.
-
-The project uses a **multithreaded Load Balancer + Fast Path architecture** to distribute packet processing across worker threads.
+### Multithreaded Deep Packet Inspection & Network Traffic Analytics Engine
 
 
 
-## 🚀 Features
-
-* 📦 PCAP packet reading
-* 🌐 Ethernet and IPv4 packet parsing
-* 🔌 TCP and UDP protocol analysis
-* 🔗 Five-tuple flow identification
-* 🔍 TLS SNI extraction
-* 🌍 HTTP Host extraction
-* 📱 Application and domain classification
-* 🚫 Configurable IP, application, and domain blocking
-* 📊 Network traffic analytics
-* 🧵 Multithreaded packet processing
-* ⚡ Performance benchmarking
-* 📄 JSON traffic reports
-* 💾 Filtered output PCAP generation
-* 🔬 Wireshark-compatible output
 
 
+\
 
-## 🏗️ Architecture
+> **PacketScope is a C++17-based multithreaded Deep Packet Inspection (DPI) and network traffic analytics engine designed to analyze captured network traffic, identify protocols and applications, extract domains from HTTP/TLS metadata, apply traffic filtering rules, and generate detailed reports.**
 
+---
 
+## 📌 Overview
+
+PacketScope processes network traffic captured in **PCAP files** and performs analysis across multiple protocol layers.
+
+The engine can:
+
+* Parse Ethernet and IPv4 packets
+* Identify TCP and UDP traffic
+* Track flows using the **five-tuple**
+* Extract **TLS SNI** from TLS ClientHello messages
+* Extract **HTTP Host** information
+* Classify applications and domains
+* Apply IP, application and domain filtering rules
+* Process packets using a multithreaded architecture
+* Generate network traffic analytics
+* Measure processing performance
+* Generate a machine-readable JSON report
+* Write processed packets to an output PCAP
+
+---
+
+# ✨ Key Highlights
+
+| Capability                | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| 🔍 Deep Packet Inspection | Inspects packet headers and selected application-layer metadata |
+| 🧵 Multithreading         | Uses Load Balancers and Fast Path worker threads                |
+| 🌐 Protocol Analysis      | Ethernet, IPv4, TCP and UDP parsing                             |
+| 🔐 TLS Analysis           | Extracts Server Name Indication (SNI) from TLS ClientHello      |
+| 🌍 Domain Detection       | Identifies domains from TLS SNI / HTTP Host                     |
+| 📊 Traffic Analytics      | Source IP, destination IP, protocol and application statistics  |
+| 🛡️ Traffic Filtering     | Supports IP, application and domain-based rules                 |
+| 📄 JSON Reporting         | Generates `traffic_report.json`                                 |
+| 📦 PCAP Output            | Generates processed `output.pcap`                               |
+| ⚡ Performance Metrics     | Processing time, PPS, throughput and average packet time        |
+
+---
+
+# 🏗️ System Architecture
+
+```text
                          INPUT PCAP
                              │
                              ▼
-                      ┌─────────────┐
-                      │ PCAP Reader │
-                      └──────┬──────┘
+                    ┌─────────────────┐
+                    │   PCAP Reader   │
+                    └────────┬────────┘
                              │
                              ▼
-                     ┌──────────────┐
-                     │Packet Parser │
-                     └──────┬───────┘
-                            │
-                            ▼
-                   ┌──────────────────┐
-                   │ Five-Tuple Flow  │
-                   │   Identification │
-                   └────────┬─────────┘
-                            │
-                            ▼
-                    ┌───────────────┐
-                    │ Load Balancers │
-                    └───────┬───────┘
-                            │
-                    ┌───────┴───────┐
-                    ▼               ▼
-                 LB0               LB1
-                  │                 │
-               ┌──┴──┐           ┌──┴──┐
-               ▼     ▼           ▼     ▼
-              FP0   FP1         FP2   FP3
-               │     │           │     │
-               └─────┴─────┬─────┴─────┘
-                           ▼
-                  DPI / Application
-                     Classification
-                           │
-                 ┌─────────┴─────────┐
-                 ▼                   ▼
-              BLOCK                 ALLOW
-                 │                   │
-                DROP              FORWARD
-                 └─────────┬─────────┘
-                           ▼
-                    Traffic Analytics
-                           │
-                 ┌─────────┴─────────┐
-                 ▼                   ▼
-             output.pcap       traffic_report.json
+                    ┌─────────────────┐
+                    │ Packet Parser   │
+                    │ Ethernet / IP   │
+                    │ TCP / UDP       │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │ Five-Tuple Flow │
+                    │ Identification  │
+                    └────────┬────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │ Load Balancers  │
+                    └───────┬─┬───────┘
+                            │ │
+                    ┌───────┘ └───────┐
+                    ▼                 ▼
+                ┌────────┐        ┌────────┐
+                │  LB0   │        │  LB1   │
+                └───┬────┘        └───┬────┘
+                    │                 │
+              ┌─────┴─────┐     ┌─────┴─────┐
+              ▼           ▼     ▼           ▼
+            ┌────┐      ┌────┐ ┌────┐      ┌────┐
+            │ FP0│      │ FP1│ │ FP2│      │ FP3│
+            └──┬─┘      └─┬──┘ └─┬──┘      └─┬──┘
+               └──────────┴───────┴──────────┘
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │       DPI       │
+                    │  Classification │
+                    └────────┬────────┘
+                             │
+                  ┌──────────┴──────────┐
+                  ▼                     ▼
+          TLS SNI / HTTP Host      Rule Matching
+                  │                     │
+                  ▼                     ▼
+          Application / Domain    Forward / Drop
+             Classification              │
+                  │                     │
+                  └──────────┬──────────┘
+                             ▼
+                    ┌─────────────────┐
+                    │ Traffic         │
+                    │ Analytics       │
+                    └────────┬────────┘
+                             │
+                 ┌───────────┴───────────┐
+                 ▼                       ▼
+          traffic_report.json       output.pcap
+```
 
+---
 
+# 🔄 Packet Processing Pipeline
 
-
-## 🔄 Packet Processing Pipeline
-
-
-PCAP
- ↓
-PCAP Reader
- ↓
+```text
+PCAP File
+   ↓
+Packet Reading
+   ↓
 Ethernet Parsing
- ↓
+   ↓
 IPv4 Parsing
- ↓
-TCP / UDP Parsing
- ↓
-Five-Tuple Identification
- ↓
+   ↓
+TCP / UDP Detection
+   ↓
+Five-Tuple Flow Identification
+   ↓
 Load Balancing
- ↓
-Fast Path Workers
- ↓
+   ↓
+Fast Path Worker Processing
+   ↓
 TLS SNI / HTTP Host Extraction
- ↓
-Application Classification
- ↓
-Traffic Rules
- ↓
+   ↓
+Application & Domain Classification
+   ↓
+Traffic Rule Processing
+   ↓
 Forward / Drop
- ↓
-Analytics
- ↓
-Output PCAP + JSON Report
+   ↓
+Traffic Analytics
+   ↓
+JSON Report + Output PCAP
+```
 
+---
 
+# 🧵 Multithreaded Processing
 
+PacketScope follows a **producer-consumer style architecture**.
 
-## 🧵 Multithreaded Processing
+### Processing components
 
-PacketScope uses multiple processing stages to distribute packet-processing work.
+```text
+PCAP Reader
+     │
+     ▼
+Thread-Safe Queues
+     │
+     ▼
+Load Balancers
+     │
+     ▼
+Fast Path Workers
+     │
+     ▼
+Output / Analytics
+```
 
-### Configuration
+The project uses:
 
-| Component         | Count |
-| ----------------- | ----- |
-| Load Balancers    |     2 |
-| Fast Path Workers |     4 |
-| Total Workers     |     4 |
+* Reader processing
+* Load Balancer threads
+* Fast Path worker threads
+* Thread-safe queues
+* Output processing
 
-Packets are distributed by the Load Balancers and processed by Fast Path worker threads.
+Packets can be distributed using their flow information so packets belonging to the same network flow can consistently reach the same worker.
 
-The architecture follows a producer-consumer style design using thread-safe queues.
+### Example configuration
 
+```text
+Load Balancers: 2
+Fast Path workers per LB: 2
+Total Fast Path workers: 4
+```
 
+---
 
-## 🔍 Deep Packet Inspection
+# 🔍 Deep Packet Inspection
 
-PacketScope performs inspection beyond basic IP and port information.
+PacketScope goes beyond basic IP and port inspection.
 
-### Protocol Information
+For example:
 
-The parser handles:
-
-* Ethernet
-* IPv4
-* TCP
-* UDP
-
-### Flow Identification
-
-Flows can be identified using the five-tuple:
-
-
-Source IP
-Destination IP
-Source Port
-Destination Port
-Protocol
-
-
-Example:
-
-
-192.168.1.100:52341
-        ↓
-142.250.185.206:443
-        ↓
+```text
+Ethernet
+   ↓
+IPv4
+   ↓
 TCP
+   ↓
+TLS
+   ↓
+TLS ClientHello
+   ↓
+SNI
+   ↓
+Application Classification
+```
 
+### TLS SNI Example
 
+```text
+TLS ClientHello
+       ↓
+SNI: www.youtube.com
+       ↓
+Application Classification
+       ↓
+YouTube
+```
 
+PacketScope uses TLS metadata such as **Server Name Indication (SNI)** for domain/application identification.
 
-## 🔐 TLS / HTTPS Inspection
+> **Important:** PacketScope does not decrypt HTTPS application data. It uses available protocol metadata such as TLS SNI.
 
-PacketScope does **not decrypt HTTPS traffic**.
+---
 
-Instead, it can inspect available TLS metadata such as the **Server Name Indication (SNI)** from the TLS ClientHello.
+# 🌐 HTTP Host Extraction
+
+For HTTP traffic, PacketScope can inspect the HTTP Host header.
 
 Example:
 
-www.facebook.com
-www.instagram.com
-www.youtube.com
-github.com
-www.netflix.com
-
-
-This allows the engine to associate encrypted traffic with domains or applications without decrypting the actual HTTPS payload.
-
-
-
-## 🌐 HTTP Host Detection
-
-For HTTP traffic, PacketScope can inspect the HTTP Host information.
-
-Example:
-
+```text
+GET / HTTP/1.1
 Host: example.com
+```
 
+The extracted hostname can then be used for domain/application classification.
 
-The extracted host can then be used for classification and traffic analysis.
+---
 
+# 🛡️ Traffic Filtering
 
+PacketScope supports configurable traffic filtering.
 
-## 📱 Application Classification
+### Supported rule categories
 
-PacketScope identifies applications and domains using available packet metadata such as:
+| Rule Type   | Example        | Action                    |
+| ----------- | -------------- | ------------------------- |
+| IP          | `192.168.1.50` | Block matching traffic    |
+| Application | `YouTube`      | Block application traffic |
+| Domain      | `facebook.com` | Block matching domain     |
 
-* Protocol
-* Ports
-* TLS SNI
-* HTTP Host
-* Packet characteristics
+Conceptually:
 
-Example applications detected during testing:
+```text
+Packet
+  ↓
+Classification
+  ↓
+Rule Matching
+  ↓
+Blocked?
+ ┌───────┴───────┐
+ │               │
+YES              NO
+ │               │
+DROP           FORWARD
+```
 
-Facebook
-Spotify
-TikTok
-Telegram
-Netflix
-Amazon
-Cloudflare
-Twitter/X
-Instagram
-Discord
-Zoom
-YouTube
-Microsoft
-Apple
-Google
-GitHub
+---
 
+# 📊 Network Traffic Analytics
 
+PacketScope generates traffic statistics after processing the PCAP.
 
+The analytics include:
 
-# 📊 Test Results
+* Top source IPs
+* Top destination IPs
+* Protocol distribution
+* Top applications
+* Top domains / SNI values
+* Packet counts
+* Byte usage
+* Forwarded packets
+* Dropped packets
 
-The following results were obtained from a test PCAP containing **77 packets**.
+---
 
-## Packet Statistics
+# 🧪 Latest Test Run
 
-| Metric        | Result |
-| ------------- | -----: |
-| Total Packets |     77 |
-| Total Bytes   |   5738 |
-| TCP Packets   |     73 |
-| UDP Packets   |      4 |
-| Forwarded     |     77 |
-| Dropped       |      0 |
+PacketScope was tested using:
 
-> No packet matched a blocking rule in this particular test, so all 77 packets were forwarded.
+```text
+Input:
+test_dpi.pcap
+```
 
+### PCAP Information
 
+```text
+PCAP Version : 2.4
+Snaplen      : 65535 bytes
+Link Type    : Ethernet
+```
 
-## 🧵 Thread Statistics
+### Processing Summary
 
-| Worker | Packets |
-| ------ | ------: |
-| LB0    |      53 |
-| LB1    |      24 |
-| FP0    |      53 |
-| FP1    |       0 |
-| FP2    |       0 |
-| FP3    |      24 |
+```text
+Total Packets : 77
+Total Bytes   : 5738
+TCP Packets   : 73
+UDP Packets   : 4
 
-The test demonstrates packet distribution across the configured Load Balancers and Fast Path workers.
+Forwarded     : 77
+Dropped       : 0
+```
 
+---
 
+# 🧵 Thread Statistics
 
-## 📱 Application Breakdown
+The latest test used:
 
-| Application | Packets | Percentage |
-| ----------- | ------: | ---------: |
-| HTTPS       |      39 |      50.6% |
-| Unknown     |      16 |      20.8% |
-| DNS         |       4 |       5.2% |
-| HTTP        |       2 |       2.6% |
+```text
+Load Balancers : 2
+Fast Paths     : 4
+```
 
-Additional applications detected:
+Observed processing:
 
+```text
+LB0 dispatched : 53 packets
+LB1 dispatched : 24 packets
 
-Facebook
-Spotify
-TikTok
-Telegram
-Netflix
-Amazon
-Cloudflare
-Twitter/X
-Instagram
-Discord
-Zoom
-YouTube
-Microsoft
-Apple
-Google
-GitHub
+FP0 processed  : 53 packets
+FP1 processed  : 0 packets
+FP2 processed  : 0 packets
+FP3 processed  : 24 packets
+```
 
+Total:
 
+```text
+53 + 24 = 77 packets
+```
 
+---
 
-## 🌍 Detected Domains / SNI
+# 📱 Application Classification
 
+Latest test results:
 
-httpbin.org          → HTTPS
-zoom.us              → Zoom
-www.youtube.com      → YouTube
-www.facebook.com     → Facebook
-www.instagram.com    → Instagram
-example.com          → HTTPS
-open.spotify.com     → Spotify
-www.google.com       → Google
-www.amazon.com       → Amazon
-web.telegram.org     → Telegram
-discord.com          → Discord
-www.cloudflare.com   → Cloudflare
-www.netflix.com      → Netflix
-www.tiktok.com       → TikTok
-github.com           → GitHub
-www.microsoft.com    → Microsoft
-twitter.com          → Twitter/X
-www.apple.com        → Apple
+```text
+HTTPS        39 packets   50.6%
+Unknown      16 packets   20.8%
+DNS           4 packets    5.2%
+HTTP          2 packets    2.6%
+Facebook      1 packet     1.3%
+Spotify       1 packet     1.3%
+TikTok        1 packet     1.3%
+Telegram      1 packet     1.3%
+Netflix       1 packet     1.3%
+Amazon        1 packet     1.3%
+Cloudflare    1 packet     1.3%
+Twitter/X     1 packet     1.3%
+Instagram     1 packet     1.3%
+Discord       1 packet     1.3%
+Zoom          1 packet     1.3%
+YouTube       1 packet     1.3%
+Microsoft     1 packet     1.3%
+Apple         1 packet     1.3%
+Google        1 packet     1.3%
+GitHub        1 packet     1.3%
+```
 
+---
 
+# 🌍 Detected Domains / SNI
 
+The test traffic produced domain/SNI detections including:
 
-# 📈 Network Traffic Analytics
+```text
+httpbin.org            → HTTPS
+zoom.us                → Zoom
+www.youtube.com        → YouTube
+www.facebook.com       → Facebook
+www.instagram.com      → Instagram
+example.com            → HTTPS
+open.spotify.com       → Spotify
+www.google.com         → Google
+www.amazon.com         → Amazon
+web.telegram.org       → Telegram
+discord.com            → Discord
+www.cloudflare.com     → Cloudflare
+www.netflix.com        → Netflix
+www.tiktok.com         → TikTok
+github.com             → GitHub
+www.microsoft.com      → Microsoft
+twitter.com            → Twitter/X
+www.apple.com          → Apple
+```
 
-## Top Source IPs
+---
 
-| Rank | Source IP       | Packets | Traffic |
-| ---: | --------------- | ------: | ------: |
-|    1 | 192.168.1.100   |      56 | 4.50 KB |
-|    2 | 192.168.1.50    |       5 |   270 B |
-|    3 | 52.94.236.248   |       1 |    54 B |
-|    4 | 142.250.185.206 |       1 |    54 B |
-|    5 | 17.253.144.10   |       1 |    54 B |
+# 📈 Traffic Analytics — Latest Run
 
-## Top Destination IPs
+### Top Source IPs
 
-| Rank | Destination IP | Packets | Traffic |
-| ---: | -------------- | ------: | ------: |
-|    1 | 192.168.1.100  |      16 |   864 B |
-|    2 | 8.8.8.8        |       4 |   300 B |
-|    3 | 172.217.0.100  |       5 |   270 B |
-|    4 | 192.0.78.24    |       3 |   250 B |
-|    5 | 157.240.1.174  |       3 |   249 B |
+```text
+1. 192.168.1.100  | 56 packets | 4.50 KB
+2. 192.168.1.50   |  5 packets | 270 B
+3. 52.94.236.248  |  1 packet  | 54 B
+4. 142.250.185.206|  1 packet  | 54 B
+5. 17.253.144.10  |  1 packet  | 54 B
+```
 
-## Protocol Distribution
+### Top Destination IPs
 
-| Protocol | Packets | Traffic |
-| -------- | ------: | ------: |
-| TCP      |      73 | 5.31 KB |
-| UDP      |       4 |   300 B |
+```text
+1. 192.168.1.100  | 16 packets | 864 B
+2. 8.8.8.8        |  4 packets | 300 B
+3. 172.217.0.100  |  5 packets | 270 B
+4. 192.0.78.24    |  3 packets | 250 B
+5. 157.240.1.174  |  3 packets | 249 B
+```
 
+### Protocol Distribution
 
+```text
+TCP | 73 packets | 5.31 KB
+UDP |  4 packets | 300 B
+```
 
-# ⚡ Performance
+### Top Applications by Traffic
 
-Performance metrics from the same 77-packet test:
+```text
+1. HTTPS       | 39 packets | 2.21 KB
+2. Unknown     | 16 packets | 864 B
+3. DNS         |  4 packets | 300 B
+4. Cloudflare  |  1 packet  | 142 B
+5. Instagram   |  1 packet  | 141 B
+```
 
-| Metric                |           Result |
-| --------------------- | ---------------: |
-| Processing Time       | 0.509782 seconds |
-| Packets Per Second    |       151.04 PPS |
-| Throughput            |        0.01 MB/s |
-| Average Time / Packet |       6620.55 µs |
+---
 
-> **Note:** These numbers are from a small functional test PCAP and should not be considered a production-scale benchmark.
+# ⚡ Performance Benchmark
 
+Latest measured run:
 
+```text
+Processing Time     : 0.509782 seconds
+Packets Per Second  : 151.04 PPS
+Throughput          : 0.01 MB/s
+Avg Time Per Packet : 6620.55 microseconds
+```
 
-# 📄 JSON Report
+> **Note:** This benchmark uses a small 77-packet test PCAP. Performance will vary depending on PCAP size, packet contents, system hardware and worker configuration. These numbers should not be interpreted as production-scale throughput.
 
-PacketScope automatically generates:
+---
 
+# 📄 JSON Traffic Report
 
+PacketScope generates:
+
+```text
 traffic_report.json
-
-The report contains traffic statistics and analysis results generated during processing.
+```
 
 Example:
 
-
+```json
 {
   "total_packets": 77,
   "total_bytes": 5738,
@@ -392,48 +490,49 @@ Example:
   "forwarded": 77,
   "dropped": 0
 }
+```
 
+The report also contains detailed:
 
+* Application statistics
+* Protocol statistics
+* Source IP statistics
+* Destination IP statistics
+* Domain/SNI statistics
+* Traffic totals
+* Forward/drop information
 
-# 💾 Output PCAP
+---
 
-After processing, PacketScope generates:
+# 📦 Output PCAP
 
+PacketScope writes the processed traffic to:
 
-output
-
-The output PCAP can be opened using **Wireshark** for packet-level inspection and verification.
-
-
-Input PCAP
-     ↓
-PacketScope
-     ↓
+```text
 output.pcap
-     ↓
-Wireshark
+```
 
+The output PCAP can be inspected using tools such as **Wireshark**.
 
+### Workflow
 
+```text
+test_dpi.pcap
+      ↓
+  PacketScope
+      ↓
+ output.pcap
+      ↓
+   Wireshark
+```
 
-# 🛠️ Technologies
+This makes it possible to independently inspect the packet-level output.
 
-| Technology     | Purpose                         |
-| -------------- | ------------------------------- |
-| C++17          | Core implementation             |
-| GCC / MinGW    | Compilation                     |
-| MSYS2 UCRT64   | Windows development environment |
-| PCAP           | Packet capture input/output     |
-| Multithreading | Parallel packet processing      |
-| JSON           | Traffic reporting               |
-| Wireshark      | Packet verification             |
-| Git / GitHub   | Version control                 |
-
-
+---
 
 # 📁 Project Structure
 
-
+```text
 PacketScope/
 │
 ├── include/
@@ -467,227 +566,208 @@ PacketScope/
 │   ├── traffic_analytics.cpp
 │   └── types.cpp
 │
-├── test_dpi.pcap
-├── traffic_report.json
-├── output.pcap
 ├── generate_test_pcap.py
-├── CMakeLists.txt
-├── README.md
+├── test_dpi.pcap
 ├── TRAFFIC_ANALYTICS.md
-└── WINDOWS_SETUP.md
+├── WINDOWS_SETUP.md
+├── CMakeLists.txt
+└── README.md
+```
 
+---
 
+# 🛠️ Technologies Used
 
-# ▶️ Build and Run
+| Technology         | Purpose                                 |
+| ------------------ | --------------------------------------- |
+| **C++17**          | Core implementation                     |
+| **CMake**          | Build configuration                     |
+| **PCAP**           | Packet capture input/output             |
+| **TCP/IP**         | Network protocol analysis               |
+| **TCP / UDP**      | Transport-layer processing              |
+| **TLS / SNI**      | Domain identification from TLS metadata |
+| **HTTP**           | Host-header inspection                  |
+| **Multithreading** | Parallel packet processing              |
+| **Python**         | Test PCAP generation                    |
+| **JSON**           | Machine-readable reporting              |
+| **Wireshark**      | Packet inspection and validation        |
+| **Git / GitHub**   | Version control and project hosting     |
 
-## 1. Verify GCC
+---
+
+# 💻 Build & Run
+
+## Requirements
+
+* C++17-compatible compiler
+* CMake (optional)
+* Python 3 for test PCAP generation
+* Git
+
+### Windows
+
+This project has been tested using **MSYS2 UCRT64 / GCC**.
+
+Check the compiler:
 
 ```powershell
-where.exe g++
 g++ --version
 ```
 
-The project was tested using the MSYS2 UCRT64 GCC environment.
-
-
-## 2. Build
-
-Run:
+### Build
 
 ```powershell
 g++ -std=c++17 -pthread -O2 -I include -o dpi_engine.exe src/dpi_mt.cpp src/pcap_reader.cpp src/packet_parser.cpp src/sni_extractor.cpp src/types.cpp
 ```
 
-
-
-## 3. Run PacketScope
+### Run
 
 ```powershell
 .\dpi_engine.exe test_dpi.pcap output.pcap
 ```
 
+The program generates:
 
-
-## 4. Check Generated Files
-
-```powershell
-dir traffic_report.json
-dir output.pcap
+```text
+traffic_report.json
+output.pcap
 ```
 
-View the JSON report:
+---
 
-```powershell
-Get-Content traffic_report.json
-```
+# 🧪 Generate Test Traffic
 
-
-
-# 🧪 Test Traffic
-
-A test PCAP can be generated using:
+The project includes a Python script for generating test PCAP data:
 
 ```powershell
 python generate_test_pcap.py
 ```
 
-The generated PCAP can then be processed by PacketScope.
+This generates:
 
+```text
+test_dpi.pcap
+```
 
+which can then be processed by PacketScope.
 
-# 🚫 Traffic Filtering
+---
 
-PacketScope supports configurable traffic filtering based on rules such as:
+# ⚙️ Configure Processing Threads
 
-* IP address
-* Application
-* Domain
+Example:
 
-Conceptually:
+```text
+./dpi_engine input.pcap output.pcap --lbs 4 --fps 4
+```
 
+Conceptually this configures:
 
-Packet
-  ↓
-Classification
-  ↓
-Rule Matching
-  ↓
- ┌───────────────┐
- │ Rule Matched? │
- └───────┬───────┘
-         │
-    ┌────┴────┐
-    ▼         ▼
-   YES        NO
-    │          │
-   DROP      FORWARD
+```text
+4 Load Balancers
+        ×
+4 Fast Path workers per LB
+        =
+16 Fast Path processing workers
+```
 
+> Use the thread configuration supported by the current implementation/build.
 
+---
 
+# 🎯 Key Concepts Demonstrated
 
-# 📚 Key Concepts
+PacketScope demonstrates practical concepts in:
 
-### Deep Packet Inspection
+* Network protocol parsing
+* Deep Packet Inspection
+* Five-tuple flow identification
+* TLS SNI extraction
+* HTTP Host extraction
+* Application classification
+* Domain classification
+* Stateful traffic filtering
+* Multithreaded programming
+* Producer-consumer architecture
+* Thread-safe queues
+* Load balancing
+* Network traffic analytics
+* Performance measurement
+* JSON-based reporting
+* PCAP processing
 
-Examines packet headers and available application-layer metadata to identify traffic.
-
-### Five-Tuple
-
-Identifies a network flow using:
-
-
-Source IP
-Destination IP
-Source Port
-Destination Port
-Protocol
-
-
-### SNI
-
-TLS metadata that can expose the requested server/domain without decrypting HTTPS traffic.
-
-### Load Balancer
-
-Distributes packets between processing paths.
-
-### Fast Path
-
-Worker-processing stage responsible for packet inspection and classification.
-
-### Traffic Analytics
-
-Collects information such as:
-
-* Packet counts
-* Byte counts
-* Protocol distribution
-* Source IPs
-* Destination IPs
-* Applications
-* Domains
-* Processing performance
-
-
+---
 
 # 🔮 Future Improvements
 
-Possible future improvements include:
+Possible future extensions include:
 
-* Real-time network interface capture
+* Real-time packet capture
+* Live traffic dashboard
 * More application signatures
-* Improved flow tracking
-* More advanced filtering rules
-* Better load-balancing strategies
-* Performance optimization
-* Expanded protocol support
-* Real-time dashboards
-* More extensive benchmarking
-* Additional security analysis features
+* QUIC / HTTP/3 support
+* Bandwidth throttling
+* Persistent rule configuration
+* Advanced traffic classification
+* CSV report export
+* Real-time monitoring
+* Graphical analytics dashboard
 
+---
 
+# 📚 Documentation
 
-# 📖 Documentation
+Additional documentation:
 
-Additional project documentation:
+* `TRAFFIC_ANALYTICS.md`
+* `WINDOWS_SETUP.md`
 
-```text
-WINDOWS_SETUP.md
-TRAFFIC_ANALYTICS.md
-```
+---
 
+# 📌 Project Note
 
+PacketScope is an **extended version of an existing C++ packet analysis / DPI project**.
 
-# ⚠️ Project Note
+The project has been enhanced with:
 
-PacketScope is an extended/adapted C++ packet-analysis and DPI project. The work involved setting up the development environment, working with the multithreaded DPI pipeline, configuring and testing the system, working with classification/analytics/reporting/filtering functionality, and validating generated PCAP and JSON results.
+* Network traffic analytics
+* JSON reporting
+* Performance benchmarking
+* Improved application/domain classification
+* Multithreaded processing and analysis
 
+The original project's license and attribution requirements should be preserved where applicable.
+
+---
 
 # 👨‍💻 Author
 
-**Vinay**
+### Vinay Patidar
 
-B.Tech Student
-C++ | Networking | Deep Packet Inspection | Network Traffic Analysis
+**B.Tech — Computer Science & Business Systems**
 
 ---
 
 ## ⭐ Project Summary
 
+```text
+PCAP
+ ↓
+Packet Parsing
+ ↓
+Flow Identification
+ ↓
+Multithreaded Processing
+ ↓
+Deep Packet Inspection
+ ↓
+Application / Domain Classification
+ ↓
+Traffic Filtering
+ ↓
+Analytics
+ ↓
+JSON Report + Output PCAP
+```
 
-                 PacketScope
-                      │
-                      ▼
-                  PCAP Input
-                      │
-                      ▼
-                Packet Parsing
-                      │
-                      ▼
-              Flow Identification
-                      │
-                      ▼
-               Load Balancing
-                      │
-                      ▼
-              Multithreaded DPI
-                      │
-             ┌────────┴────────┐
-             ▼                 ▼
-       Application          Domain/SNI
-       Classification        Detection
-             │                 │
-             └────────┬────────┘
-                      ▼
-                Traffic Rules
-                      │
-                ┌─────┴─────┐
-                ▼           ▼
-              DROP        FORWARD
-                └─────┬─────┘
-                      ▼
-                Traffic Analytics
-                      │
-              ┌───────┴────────┐
-              ▼                ▼
-         output.pcap    traffic_report.json
+**PacketScope — Analyze. Classify. Filter. Understand Network Traffic.**
